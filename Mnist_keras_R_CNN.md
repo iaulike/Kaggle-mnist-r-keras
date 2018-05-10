@@ -29,37 +29,41 @@ y_train<-to_categorical(y_train, 10)
 actual<-y_test
 y_test<-to_categorical(y_test, 10)
 
+# For reproducible results across R, python, numpy and tensorflow, use the following. 
+# It needs to disable parallel cpu for full reproducibility
+#use_session_with_seed(666, disable_parallel_cpu = FALSE)
 set.seed(666)
 
 #kaggle kernel adapted from Yassine Ghouzam
 model <- keras_model_sequential()
 
-model 
-  layer_conv_2d(model, filters=32, kernel_size = 5, padding = 'same', activation ='relu', input_shape = c(28,28,1)) 
-  layer_conv_2d(model, filters=32, kernel_size = 5, padding = 'same', activation ='relu')  
-  layer_max_pooling_2d(model, pool_size = c(2,2)) 
-  layer_dropout(model, 0.25) 
-  layer_conv_2d(model, filters=64, kernel_size = 3, padding = 'same', activation ='relu') 
-  layer_conv_2d(model, filters=64, kernel_size = 3, padding = 'same', activation ='relu') 
-  layer_max_pooling_2d(model, pool_size = 2, strides= 2) 
-  layer_dropout(model, 0.25) 
-  layer_flatten(model) 
-  layer_dense(model, units=256,activation= "relu") 
-  layer_dropout(model, 0.5)
-  layer_dense(model, units=10, activation = "softmax")
-  
-#compile (define loss and optimiser)
+model %>% 
+  layer_conv_2d(filters=32, kernel_size = 5, padding = 'same', activation ='relu', input_shape = c(28,28,1)) %>%
+  layer_conv_2d(filters=32, kernel_size = 5, padding = 'same', activation ='relu') %>% 
+  layer_max_pooling_2d(pool_size = c(2,2)) %>%
+  layer_dropout(0.25) %>%
+  layer_conv_2d(filters=64, kernel_size = 3, padding = 'same', activation ='relu') %>%
+  layer_conv_2d(filters=64, kernel_size = 3, padding = 'same', activation ='relu') %>%
+  layer_max_pooling_2d(pool_size = 2, strides= 2) %>%
+  layer_dropout(0.25) %>%
+  layer_flatten() %>%
+  layer_dense(units=256,activation= "relu") %>% 
+  layer_dropout(0.5) %>%
+  layer_dense(units=10, activation = "softmax")
 
-model %>%
-  compile(loss="categorical_crossentropy", optimizer=optimizer_rmsprop(), metrics=c("accuracy"))
+# compile (define loss and optimiser)
+model %>% compile(
+  loss = "categorical_crossentropy", 
+#  optimizer = optimizer_rmsprop(), 
+  optimizer = optimizer_adam(), 
+  metrics=c("accuracy")
+)
 
-#model %>%
-#  compile(loss="categorical_crossentropy", optimizer=optimizer_adam(), metrics=c("accuracy"))
-
-
-#train (fit)
-history <- model %>%
-  fit(x_train, y_train, epochs=30, batch_size=128, validation_split = 0.1)
+history <- model %>% fit( 
+  x_train, y_train, 
+  epochs=20, batch_size=128, 
+  validation_split = 0.1
+  )
 
 plot(history)
 
@@ -71,9 +75,9 @@ table(predicted, actual)
 
 summary(model)
 
-
 wrong<-which(actual!=predicted)
-
+#wrong_rmsprop_20 <- wrong
+wrong_adam_20 <- wrong
 
 rm(x_train)
 rm(y_train)
@@ -83,7 +87,7 @@ rm(actual)
 rm(predicted)
 ```
 
-Seven of the 24 digits both models got wrong:
+Nine digits both models got wrong:
 
 ``` r
 library(keras)
@@ -92,53 +96,38 @@ x_test<-mnist$test$x
 y_test<-mnist$test$y
 rm(mnist)
 
-#not necessary for code to work, but this is how I found the digits both models got wrong.
-#sort(table(c(wrong_adam, wrong_rmsprop)))
+# this is how I found the digits both models got wrong, needs beautifying.
+#sort(table(c(wrong_adam_20, wrong_rmsprop_20)))
 
 par(pty="s")
-#sorry they are on their sides
-image(x_test[948,,],xlab=y_test[948])
+par(mfrow=c(3,3))
+par(mar=c(4,1,0,1))
+for (i in c(1015, 1183, 1233, 1248, 1261, 1394, 1879, 1902, 2036) ){
+  image(t(x_test[i,,])[,28:1], xaxt="n", yaxt="n")
+  title(xlab=y_test[i], line=1, cex.lab=2)
+}
 ```
 
 ![](Mnist_keras_R_CNN_files/figure-markdown_github/digit_egs-1.png)
 
+Nine digits only one model got wrong:
+
 ``` r
-image(x_test[1015,,],xlab=y_test[1015])
+par(pty="s")
+par(mfrow=c(3,3))
+par(mar=c(4,1,0,1))
+for (i in c(341,  360,  583,  647,  660,  727,  948,  966, 1115) ){
+  image(t(x_test[i,,])[,28:1], xaxt="n", yaxt="n")
+  title(xlab=y_test[i], line=1, cex.lab=2)
+}
 ```
 
-![](Mnist_keras_R_CNN_files/figure-markdown_github/digit_egs-2.png)
+![](Mnist_keras_R_CNN_files/figure-markdown_github/digit_eg2-1.png)
 
 ``` r
-image(x_test[1040,,],xlab=y_test[1040])
-```
+# ^ should be written in a function
 
-![](Mnist_keras_R_CNN_files/figure-markdown_github/digit_egs-3.png)
 
-``` r
-image(x_test[1248,,],xlab=y_test[1248])
-```
-
-![](Mnist_keras_R_CNN_files/figure-markdown_github/digit_egs-4.png)
-
-``` r
-image(x_test[1710,,],xlab=y_test[1710])
-```
-
-![](Mnist_keras_R_CNN_files/figure-markdown_github/digit_egs-5.png)
-
-``` r
-image(x_test[1879,,],xlab=y_test[1879])
-```
-
-![](Mnist_keras_R_CNN_files/figure-markdown_github/digit_egs-6.png)
-
-``` r
-image(x_test[2036,,],xlab=y_test[2036])
-```
-
-![](Mnist_keras_R_CNN_files/figure-markdown_github/digit_egs-7.png)
-
-``` r
 rm(x_test)
 rm(y_test)
 ```
